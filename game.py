@@ -25,7 +25,7 @@ INTRO = [
     "",
     "You are lost in a maze that is watching you.",
     "",
-    "  - Three doors marked E. One is real. Two are decoys.",
+    "  - Three doors marked E. One is real. Two are decoys. The decoys shimmer (blink) now and then to hint that they are fake.",
     "  - The maze predicts where you're headed and rewrites itself to block you. Good luck :3",
     "",
     "Move: WASD / arrows      Quit: q",
