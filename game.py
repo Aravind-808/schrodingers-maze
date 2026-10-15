@@ -335,12 +335,7 @@ def report(g, gl):
     out += [
         "Settings:          %s" % getattr(g, "settings", getattr(g, "difficulty", "normal")),
         "Difficulty:        %s" % getattr(g, "difficulty", "normal"),
-        "Moves used:        %d / %s" % (g.turn, "unlimited" if g.move_limit is None else g.move_limit),
-        "Decoys tripped:    %d" % g.decoys_hit,
-        "Mutations:         %d fired, %d landed, %d cancelled" % (g.fired, g.landed, g.cancelled),
-        "Close strikes:     %d fired, you beat %d by running" % (g.race_fired, g.race_beaten),
-        "Deception score:   %d   (%d turns it was sure of a decoy + %d mutations wasted on decoy routes)"
-        % (g.deception_score, g.fooled_turns, g.wasted),
+        "Moves used:        %d / %s" % (g.turn, "unlimited" if g.move_limit is None else g.move_limit)
     ]
     return "\n".join(out)
 
