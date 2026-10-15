@@ -339,12 +339,22 @@ def main():
             out["g"].status = "quit"
     if "g" not in out:
         print("\nNo game started.")
+        try:
+            input("\nPress Enter to exit...")
+        
+        except (KeyboardInterrupt, EOFError):
+            pass
         return
     try:
         print(report(out["g"], out["gl"]))
     except UnicodeEncodeError:             # old consoles that can't print the block symbols
         print(report(out["g"], ASC))
 
+    try:
+        input("\nPress Enter to exit...")
+
+    except (KeyboardInterrupt, EOFError):
+        pass
 
 if __name__ == "__main__":
     main()
