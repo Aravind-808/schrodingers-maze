@@ -112,8 +112,8 @@ def draw(scr, g, gl, at):
     n = int(round(conf * 10))
     susp = gl["on"] * n + gl["off"] * (10 - n)
     moves = "inf" if math.isinf(g.moves_left) else "%3d" % g.moves_left
-    put(scr, base, 1, "Moves %3s   Doors %d   Maze energy %s (%d)   Suspicion %s" % (
-        moves, len(g.alive_doors()), energy, c, susp), at["hud"])
+    put(scr, base, 1, "Moves %3s   Doors %d   Maze energy %s (%d)" % (
+        moves, len(g.alive_doors()), energy, c), at["hud"])
     if tele:
         put(scr, base + 1, 1, "the walls are shifting...", at["tele"])
     msg = g.current_message()
