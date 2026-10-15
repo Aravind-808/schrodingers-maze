@@ -197,6 +197,7 @@ def setup_menu(scr, at, st):
             put(scr, y + 9 + j, x0, text[:W - x0 - 1], at["floor"])
         put(scr, y + 12, x0, "ENTER = start the game", at["taunt"])
         put(scr, y + 14, x0, "Up/Down: choose   Left/Right: change   1-4: difficulty   q: quit"[:W - x0 - 1], at["hud"])
+        put(scr, y + 16, x0, "Tip: If you are a beginner, turn off fog of war and try the game with unlimited moves."[:W - x0 - 1], at["hud"])
         scr.refresh()
         k = scr.getch()
         if k in QUIT_KEYS:
