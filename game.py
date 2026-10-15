@@ -159,8 +159,8 @@ def setup_help(st, key):
     return {
         "infmoves": ["LIMITED: you lose if you run out of moves.",
                      "UNLIMITED: no clock. The only way to lose is quitting."],
-        "fog_off": ["ON: you only see nearby tiles, and your map can go stale.",
-                    "OFF: you see the whole maze (the doors still look identical)."],
+        "fog_off": ["ON: you only see nearby tiles, everything else is dark.",
+                    "OFF: you see the whole maze."],
         "daily": ["RANDOM: a fresh maze every game.",
                   "DAILY: everyone who plays today gets the same maze."],
         "ascii": ["UNICODE: nicer blocks and symbols.",

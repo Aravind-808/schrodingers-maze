@@ -66,10 +66,10 @@ DIFFICULTIES = {
                    RECENCY_DECAY=0.92),
 }
 DIFFICULTY_BLURBS = {
-    "easy":   "long clock, wide vision, shimmering decoys, a slow and forgetful maze",
+    "easy":   "more moves, wide vision, shimmering decoys, a slow and forgetful maze",
     "normal": "the tuned default, with the occasional shimmering decoy",
-    "hard":   "short clock, narrow vision, a faster maze that remembers more",
-    "brutal": "1-turn warnings, tiny vision, +2 per decoy, a long-memory maze",
+    "hard":   "less moves, narrow vision, a faster maze that remembers more",
+    "brutal": "lmao, you have to run and guess and hope the maze doesn't outsmart you",
 }
 
 
