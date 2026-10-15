@@ -126,27 +126,133 @@ def banner(scr, lines, at):
 
 
 LEVELS = ["easy", "normal", "hard", "brutal"]
-LEVEL_KEYS = {ord("1"): "easy", ord("2"): "normal", ord("3"): "hard", ord("4"): "brutal",
-              ord("e"): "easy", ord("n"): "normal", ord("h"): "hard", ord("b"): "brutal",
-              10: "normal", 13: "normal", curses.KEY_ENTER: "normal"}
+
+SETUP_ROWS = [
+    ("Difficulty", "difficulty"),
+    ("Move limit", "infmoves"),
+    ("Fog of war", "fog_off"),
+    ("Maze", "daily"),
+    ("Characters", "ascii"),
+]
+ENTER_KEYS = (10, 13, curses.KEY_ENTER)
+QUIT_KEYS = (ord("q"), ord("Q"), 27)
 
 
-def choose_difficulty(scr, at):
-    lines = ["CHOOSE DIFFICULTY", ""]
-    for i, name in enumerate(LEVELS, 1):
-        lines.append("%d  %-7s %s" % (i, name.upper(), cfg.DIFFICULTY_BLURBS[name]))
-    lines += ["", "Press 1-4 (Enter = normal)   q to quit"]
+def setup_value(st, key):
+    if key == "difficulty":
+        return st["difficulty"].upper()
+    if key == "infmoves":
+        return "UNLIMITED" if st["infmoves"] else "LIMITED (clock)"
+    if key == "fog_off":
+        return "OFF" if st["fog_off"] else "ON"
+    if key == "daily":
+        return "DAILY" if st["daily"] else "RANDOM"
+    return "ASCII (safe)" if st["ascii"] else "UNICODE"
+
+
+def setup_help(st, key):
+    if key == "difficulty":
+        p = cfg.DIFFICULTIES[st["difficulty"]]
+        return ["%s." % cfg.DIFFICULTY_BLURBS[st["difficulty"]].capitalize(),
+                "Move limit %.1fx the shortest path, sight %d tiles, maze starts with %d charges."
+                % (p["MOVE_LIMIT_MULT"], p["VISION_RADIUS"], p["MUTATION_BUDGET"])]
+    return {
+        "infmoves": ["LIMITED: you lose if you run out of moves.",
+                     "UNLIMITED: no clock. The only way to lose is quitting."],
+        "fog_off": ["ON: you only see nearby tiles, and your map can go stale.",
+                    "OFF: you see the whole maze (the doors still look identical)."],
+        "daily": ["RANDOM: a fresh maze every game.",
+                  "DAILY: everyone who plays today gets the same maze."],
+        "ascii": ["UNICODE: nicer blocks and symbols.",
+                  "ASCII: pick this if the blocks look like garbage."],
+    }[key]
+
+
+def cycle(st, key, step):
+    if key == "difficulty":
+        st["difficulty"] = LEVELS[(LEVELS.index(st["difficulty"]) + step) % len(LEVELS)]
+    else:
+        st[key] = not st[key]
+
+
+def setup_menu(scr, at, st):
+    """Arrow-key settings screen. Returns the chosen settings, or None to quit."""
+    sel = 0
     while True:
         scr.erase()
-        banner(scr, lines, at)
+        H, W = scr.getmaxyx()
+        x0 = max(0, (W - 56) // 2)
+        y = max(0, (H - 17) // 2)
+        put(scr, y, x0, "S E T U P", at["taunt"])
+        for i, (label, key) in enumerate(SETUP_ROWS):
+            marker = "> " if i == sel else "  "
+            line = "%s%-12s < %s >" % (marker, label, setup_value(st, key))
+            put(scr, y + 2 + i, x0, line.ljust(56), curses.A_REVERSE if i == sel else at["hud"])
+        for j, text in enumerate(setup_help(st, SETUP_ROWS[sel][1])):
+            put(scr, y + 9 + j, x0, text[:W - x0 - 1], at["floor"])
+        put(scr, y + 12, x0, "ENTER = start the game", at["taunt"])
+        put(scr, y + 14, x0, "Up/Down: choose   Left/Right: change   1-4: difficulty   q: quit"[:W - x0 - 1], at["hud"])
+        scr.refresh()
         k = scr.getch()
-        if k in (ord("q"), ord("Q"), 27):
+        if k in QUIT_KEYS:
             return None
-        if k in LEVEL_KEYS:
-            return LEVEL_KEYS[k]
+        if k in ENTER_KEYS:
+            return st
+        if k in (curses.KEY_UP, ord("w"), ord("W")):
+            sel = (sel - 1) % len(SETUP_ROWS)
+        elif k in (curses.KEY_DOWN, ord("s"), ord("S")):
+            sel = (sel + 1) % len(SETUP_ROWS)
+        elif k in (curses.KEY_LEFT, ord("a"), ord("A")):
+            cycle(st, SETUP_ROWS[sel][1], -1)
+        elif k in (curses.KEY_RIGHT, ord("d"), ord("D"), ord(" ")):
+            cycle(st, SETUP_ROWS[sel][1], +1)
+        elif ord("1") <= k <= ord("4"):
+            st["difficulty"] = LEVELS[k - ord("1")]
 
 
-def run(scr, args, gl, out):
+def describe(st):
+    return "%s, %s moves, fog %s%s" % (
+        st["difficulty"], "unlimited" if st["infmoves"] else "limited",
+        "off" if st["fog_off"] else "on", ", daily maze" if st["daily"] else "")
+
+
+def start_game(st, args):
+    """Apply the chosen settings to the config and create the game."""
+    cfg.apply_difficulty(st["difficulty"])
+    cfg.INFINITE_MOVES = st["infmoves"]
+    cfg.FOG_OF_WAR = not st["fog_off"]
+    seed = int(datetime.date.today().strftime("%Y%m%d")) if st["daily"] else args.seed
+    g = Game(seed, args.w, args.h)
+    g.difficulty = st["difficulty"]
+    g.settings = describe(st)
+    return g
+
+
+def play(scr, g, gl, at):
+    """One game. Returns "again" if the player wants another, else "done"."""
+    while True:
+        draw(scr, g, gl, at)
+        scr.timeout(250 if g.shimmering_pos() else -1)   # keep redrawing only while something shimmers
+        k = scr.getch()
+        if k == -1:
+            continue
+        if k in QUIT_KEYS:
+            g.status = "quit"
+            return "done"
+        if k in KEYS:
+            g.step(KEYS[k])
+            if g.status in ("won", "lost"):
+                scr.timeout(-1)
+                draw(scr, g, gl, at)
+                if g.status == "won":
+                    lines = ["  YOU ESCAPED  ", "  the maze never saw it coming  "]
+                else:
+                    lines = ["  THE MAZE WINS  ", "  you ran out of moves  "]
+                banner(scr, lines + ["", "  R = play again    any other key = see your results  "], at)
+                return "again" if scr.getch() in (ord("r"), ord("R")) else "done"
+
+
+def run(scr, args, out):
     try:
         curses.curs_set(0)
     except curses.error:
@@ -156,33 +262,18 @@ def run(scr, args, gl, out):
     scr.erase()
     banner(scr, INTRO, at)
     scr.getch()
-    name = args.difficulty or choose_difficulty(scr, at)
-    if name is None:
-        return
-    cfg.apply_difficulty(name)
-    g = Game(args.seed, args.w, args.h)
-    g.difficulty = name
-    out["g"] = g
+    st = dict(difficulty=args.difficulty or "normal", infmoves=args.infmoves,
+              fog_off=args.nofog, daily=args.daily, ascii=args.ascii)
     while True:
-        draw(scr, g, gl, at)
-        scr.timeout(250 if g.shimmering_pos() else -1)   # keep redrawing only while something shimmers
-        k = scr.getch()
-        if k == -1:
-            continue
-        if k in (ord("q"), ord("Q"), 27):
-            g.status = "quit"
-            return
-        if k in KEYS:
-            g.step(KEYS[k])
-            if g.status in ("won", "lost"):
-                scr.timeout(-1)
-                draw(scr, g, gl, at)
-                if g.status == "won":
-                    banner(scr, ["  YOU ESCAPED  ", "  the maze never saw it coming  ", "  press any key  "], at)
-                else:
-                    banner(scr, ["  THE MAZE WINS  ", "  you ran out of moves  ", "  press any key  "], at)
-                scr.getch()
+        if not args.difficulty:                  # --difficulty skips the menu
+            st = setup_menu(scr, at, st)
+            if st is None:
                 return
+        g = start_game(st, args)
+        gl = ASC if st["ascii"] else UNI
+        out["g"], out["gl"] = g, gl
+        if play(scr, g, gl, at) != "again":
+            return
 
 
 def report(g, gl):
@@ -215,6 +306,7 @@ def report(g, gl):
             out.append(line.rstrip())
         out.append("")
     out += [
+        "Settings:          %s" % getattr(g, "settings", getattr(g, "difficulty", "normal")),
         "Difficulty:        %s" % getattr(g, "difficulty", "normal"),
         "Moves used:        %d / %s" % (g.turn, "unlimited" if g.move_limit is None else g.move_limit),
         "Decoys tripped:    %d" % g.decoys_hit,
@@ -231,31 +323,27 @@ def main():
     ap.add_argument("--seed", type=int)
     ap.add_argument("--daily", action="store_true", help="today's seeded maze")
     ap.add_argument("--ascii", action="store_true", help="ASCII-only glyphs")
-    ap.add_argument("--difficulty", choices=["easy", "normal", "hard", "brutal"],
-                    help="skip the menu and pick a level")
+    ap.add_argument("--difficulty", choices=LEVELS,
+                    help="skip the setup menu and play at this level")
     ap.add_argument("--infmoves", action="store_true", help="no move limit")
     ap.add_argument("--nofog", action="store_true", help="disable fog of war")
     ap.add_argument("--w", type=int, default=cfg.MAZE_W, help="maze width in rooms")
     ap.add_argument("--h", type=int, default=cfg.MAZE_H, help="maze height in rooms")
     args = ap.parse_args()
-    if args.nofog:
-        cfg.FOG_OF_WAR = False
-    if args.infmoves:
-        cfg.INFINITE_MOVES = True
-    if args.daily:
-        args.seed = int(datetime.date.today().strftime("%Y%m%d"))
-    gl = ASC if args.ascii else UNI
     locale.setlocale(locale.LC_ALL, "")
     out = {}
     try:
-        curses.wrapper(run, args, gl, out)
+        curses.wrapper(run, args, out)
     except KeyboardInterrupt:
         if "g" in out:
             out["g"].status = "quit"
     if "g" not in out:
         print("\nNo game started.")
         return
-    print(report(out["g"], gl))
+    try:
+        print(report(out["g"], out["gl"]))
+    except UnicodeEncodeError:             # old consoles that can't print the block symbols
+        print(report(out["g"], ASC))
 
 
 if __name__ == "__main__":
