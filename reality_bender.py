@@ -11,6 +11,7 @@ class Mutation:
         self.gain = 0
         self.due = None
         self.dodged = False
+        self.race = False      # a close strike the player can beat by running
 
     def cells(self):
         return [c for c in (self.seal, self.open) if c is not None]
@@ -42,11 +43,14 @@ class RealityBender:
                 return False
         return True
 
-    def static_ok(self, g, m):
+    def static_ok(self, g, m, near=False):
         if not self.structure_ok(g, m):
             return False
         for c in m.cells():
-            if maze.manhattan(c, g.player) <= cfg.MIN_PLAYER_DIST:
+            if near and c == m.seal:
+                if c == g.player:
+                    return False
+            elif maze.manhattan(c, g.player) <= cfg.MIN_PLAYER_DIST:
                 return False
             if c in g.protected:
                 return False

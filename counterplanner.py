@@ -1,9 +1,3 @@
-"""Counterplanner: picks the mutation that hurts the *predicted* route most.
-
-It attacks where the Mind Reader thinks you are going, not where you are
-really going. Fool the Mind Reader and these mutations are wasted.
-gain = (new path length to predicted target) - (old path length)
-"""
 import config as cfg
 import maze
 from reality_bender import Mutation
@@ -13,7 +7,7 @@ class Counterplanner:
     def __init__(self, bender):
         self.bender = bender
 
-    def propose(self, g, target):
+    def propose(self, g, target, near=False):
         grid = g.grid
         path = maze.shortest_path(grid, g.player, target)
         if not path or len(path) < 2:
@@ -21,12 +15,14 @@ class Counterplanner:
         old = len(path) - 1
         good, blocked = [], []
 
-        # 1) seal candidates along the predicted route
-        for c in path[1:-1]:
+        route = path[1:-1]
+        if near:
+            route = route[:cfg.TELEGRAPH_DELAY]
+        for c in route:
             if not maze.is_slot(grid, *c):
                 continue
             m = Mutation("seal", seal=c, target=target)
-            if not self.bender.static_ok(g, m):
+            if not self.bender.static_ok(g, m, near):
                 continue
             ok, gain = self._evaluate(g, m, target, old)
             if gain <= 0:
@@ -48,7 +44,7 @@ class Counterplanner:
             g.rng.shuffle(openers)
             for o in openers[:20]:
                 r = Mutation("reroute", seal=sealed.seal, open=o, target=target)
-                if not self.bender.static_ok(g, r):
+                if not self.bender.static_ok(g, r, near):
                     continue
                 ok, gain = self._evaluate(g, r, target, old)
                 if ok and gain > 0:
@@ -58,6 +54,7 @@ class Counterplanner:
             return None
         g.rng.shuffle(good)                 # seeded tie-breaks
         good.sort(key=lambda m: -m.gain)
+        good[0].race = near
         return good[0]
 
     def _evaluate(self, g, m, target, old):

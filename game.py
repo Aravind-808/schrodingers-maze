@@ -21,15 +21,12 @@ KEYS = {
 }
 
 INTRO = [
-    "T H E   H O U S E   A L W A Y S   W I N S",
+    "S C H R O D I N G E R ' S   M A Z E",
     "",
     "You are lost in a maze that is watching you.",
     "",
     "  - Three doors marked E. One is real. Two are decoys.",
-    "  - The maze predicts where you're headed and rewrites itself to block you.",
-    "  - A shimmering wall marks a shift about to land. You get 2 moves to run through.",
-    "  - Every decoy you trip feeds the maze another charge.",
-    "  - Make it believe you're going somewhere you aren't.",
+    "  - The maze predicts where you're headed and rewrites itself to block you. Good luck :3",
     "",
     "Move: WASD / arrows      Quit: q",
     "",
@@ -73,7 +70,7 @@ def draw(scr, g, gl, at):
         put(scr, 0, 0, "Terminal too small: need %dx%d (have %dx%d). Resize..." % (gw * 2 + 1, gh + 4, W, H))
         scr.refresh()
         return
-    put(scr, 0, 1, "SCHRIDINGER'S MAZE  [%s]" % getattr(g, "difficulty", "normal").upper(), at["taunt"])
+    put(scr, 0, 1, "SCHRODINGER'S MAZE  [%s]" % getattr(g, "difficulty", "normal").upper(), at["taunt"])
     put(scr, 0, W - 27 if W > 60 else 30, "WASD/arrows move   q quit"[:26], at["hud"])
     tele = g.visible_telegraphs()
     shim = g.shimmering_pos()
@@ -183,7 +180,7 @@ def run(scr, args, gl, out):
                 if g.status == "won":
                     banner(scr, ["  YOU ESCAPED  ", "  the maze never saw it coming  ", "  press any key  "], at)
                 else:
-                    banner(scr, ["  SCHRIDINGER'S MAZE  ", "  you ran out of moves  ", "  press any key  "], at)
+                    banner(scr, ["  THE MAZE WINS  ", "  you ran out of moves  ", "  press any key  "], at)
                 scr.getch()
                 return
 
@@ -222,6 +219,7 @@ def report(g, gl):
         "Moves used:        %d / %s" % (g.turn, "unlimited" if g.move_limit is None else g.move_limit),
         "Decoys tripped:    %d" % g.decoys_hit,
         "Mutations:         %d fired, %d landed, %d cancelled" % (g.fired, g.landed, g.cancelled),
+        "Close strikes:     %d fired, you beat %d by running" % (g.race_fired, g.race_beaten),
         "Deception score:   %d   (%d turns it was sure of a decoy + %d mutations wasted on decoy routes)"
         % (g.deception_score, g.fooled_turns, g.wasted),
     ]
@@ -229,7 +227,7 @@ def report(g, gl):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Schridinger's Maze")
+    ap = argparse.ArgumentParser(description="Schrodinger's Maze")
     ap.add_argument("--seed", type=int)
     ap.add_argument("--daily", action="store_true", help="today's seeded maze")
     ap.add_argument("--ascii", action="store_true", help="ASCII-only glyphs")

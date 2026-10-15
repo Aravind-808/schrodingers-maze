@@ -1,5 +1,3 @@
-"""All tunable constants in one place. Tweak these while playtesting."""
-
 # --- World ---
 MAZE_W = 19            # rooms across  (grid is 2*W+1 wide)
 MAZE_H = 9             # rooms down    (grid is 2*H+1 tall)
@@ -20,6 +18,8 @@ RECENCY_DECAY = 0.85   # weight = decay ** age  (this is the exploitable bit)
 SOFTMAX_BETA = 0.8     # sharpness of target belief
 
 # --- Reality Bender (hard rules) ---
+RACE_CHANCE = 0.35     # chance the maze's next change is a close "race" strike you can beat
+                       # by running (0 = never). The real share is a bit lower, see README.
 MIN_PLAYER_DIST = 3    # never alter cells within this Manhattan distance of player
 CELL_COOLDOWN = 10     # turns before a cell can be mutated again
 DETOUR_CAP_MULT = 3.0  # real-exit path may never exceed this * original shortest

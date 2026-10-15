@@ -57,6 +57,8 @@ class Game:
         self.message, self.message_until, self.taunt_at = "", -1, {}
         self.walked, self.thought = Counter(), Counter()
         self.fired = self.landed = self.cancelled = 0
+        self.race_fired = self.race_beaten = 0
+        self.race_next = self.rng.random() < cfg.RACE_CHANCE   # is the next strike a close one?
         self.wasted = self.fooled_turns = self.decoys_hit = 0
         self.last_opportunity = 0.0
 
@@ -175,6 +177,7 @@ class Game:
             if m.seal == self.player:         # standing on it: cancel and refund
                 self.charges += 1
                 self.cancelled += 1
+                self.race_beaten += m.race
                 self._taunt("lucky", "Lucky.", 0)
                 continue
             if not self.bender.still_valid(self, m):
@@ -187,6 +190,7 @@ class Game:
             self.setback_bank -= max(0, after - before)   # spend the credit
             self.landed += 1
             if m.dodged:
+                self.race_beaten += m.race
                 self._taunt("lucky", "Lucky.", 0)
 
     def _maybe_mutate(self):
@@ -194,15 +198,30 @@ class Game:
         if not self.patient.can_consider(self):
             return
         pred = self.mind.pred
-        m = self.counter.propose(self, pred.target_pos)
+        dist = maze.shortest_len(self.grid, self.player, pred.target_pos)
+        if dist is None:
+            return
+        thr = self.patient.threshold(self.turn)
+
+        def score(m):
+            return self.patient.opportunity(pred.confidence, m.gain, dist,
+                                            self.start_dist[pred.target_id])
+
+        m = None
+        if self.race_next:                     # try a close strike you could beat by running
+            nm = self.counter.propose(self, pred.target_pos, near=True)
+            if nm is not None and score(nm) > thr:
+                m = nm
+        if m is None:                          # otherwise the usual far-away change
+            fm = self.counter.propose(self, pred.target_pos)
+            if fm is not None:
+                self.last_opportunity = score(fm)
+                if score(fm) > thr:
+                    m = fm
         if m is None:
             return
-        dist = maze.shortest_len(self.grid, self.player, pred.target_pos)
-        opp = self.patient.opportunity(pred.confidence, m.gain, dist,
-                                       self.start_dist[pred.target_id])
-        self.last_opportunity = opp
-        if opp <= self.patient.threshold(self.turn):
-            return
+        self.race_next = self.rng.random() < cfg.RACE_CHANCE
+        self.race_fired += m.race
         m.due = self.turn + cfg.TELEGRAPH_DELAY
         self.charges -= 1
         self.fired += 1
