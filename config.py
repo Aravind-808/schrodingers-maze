@@ -8,7 +8,7 @@ SHIMMER_GROWTH = 1.3   # each gap is this many times longer than the last (50, 6
 SHIMMER_DURATION = 8   # how many turns a shimmer lasts
 NUM_DOORS = 3          # one real, the rest decoys
 FOG_OF_WAR = True      # False = whole maze always visible (also: python game.py --nofog)
-VISION_RADIUS = 6      # in grid tiles, with line of sight
+VISION_RADIUS = 8      # in grid tiles, with line of sight
 INFINITE_MOVES = False # True = no move limit (also: python game.py --infmoves)
 MOVE_LIMIT_MULT = 4.5  # move limit = this * starting shortest path (2.5 is brutal in fog; see simulate.py)
 

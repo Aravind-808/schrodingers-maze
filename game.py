@@ -164,8 +164,8 @@ def setup_help(st, key):
     return {
         "infmoves": ["LIMITED: you lose if you run out of moves.",
                      "UNLIMITED: no clock. The only way to lose is quitting."],
-        "fog_off": ["ON: you only see nearby tiles, everything else is dark.",
-                    "OFF: you see the whole maze."],
+        "fog_off": ["ON: you only see nearby tiles, and your map can go stale.",
+                    "OFF: you see the whole maze (the doors still look identical)."],
         "daily": ["RANDOM: a fresh maze every game.",
                   "DAILY: everyone who plays today gets the same maze."],
         "ascii": ["UNICODE: nicer blocks and symbols.",
@@ -257,6 +257,23 @@ def play(scr, g, gl, at):
                 return "again" if scr.getch() in (ord("r"), ord("R")) else "done"
 
 
+def wait_key(scr, redraw=None):
+    """Block until a real keyboard key. Resizes, mouse and other special codes are ignored."""
+    while True:
+        k = scr.getch()
+        if k == curses.KEY_RESIZE:
+            try:
+                curses.resize_term(0, 0)      # needed on Windows to pick up the new size
+            except curses.error:
+                pass
+            if redraw:
+                redraw()
+            continue
+        if 0 <= k < 256 or k in (curses.KEY_UP, curses.KEY_DOWN, curses.KEY_LEFT,
+                                 curses.KEY_RIGHT, curses.KEY_ENTER):
+            return k
+
+
 def run(scr, args, out):
     try:
         curses.curs_set(0)
@@ -264,9 +281,13 @@ def run(scr, args, out):
         pass
     scr.keypad(True)
     at = init_attrs()
-    scr.erase()
-    banner(scr, INTRO, at)
-    scr.getch()
+
+    def show_intro():
+        scr.erase()
+        banner(scr, INTRO, at)
+
+    show_intro()
+    wait_key(scr, show_intro)
     st = dict(difficulty=args.difficulty or "normal", infmoves=args.infmoves,
               fog_off=args.nofog, daily=args.daily, ascii=args.ascii)
     while True:
@@ -346,7 +367,7 @@ def main():
         print("\nNo game started.")
         try:
             input("\nPress Enter to exit...")
-        
+
         except (KeyboardInterrupt, EOFError):
             pass
         return
