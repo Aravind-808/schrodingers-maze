@@ -1,4 +1,4 @@
-# Schridinger's Maze
+# Schrodinger's Maze
 
 **A maze that watches you, guesses where you're going, and moves its own walls to stop you.**
 
